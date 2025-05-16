@@ -25,7 +25,10 @@ const channelSchema = new mongoose.Schema({
 
 const Channel = mongoose.model('Channel', channelSchema);
 
-app.use(cors());
+app.use(cors({
+  origin: 'https://whatsapplist.onrender.com',
+  credentials: true,
+}));
 app.use(express.json());
 app.use(cookieParser());
 
