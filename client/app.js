@@ -17,6 +17,7 @@ async function login() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ pass1, pass2 }),
+      credentials: 'include',
     });
 
     const data = await res.json();
@@ -67,7 +68,8 @@ async function addChannel() {
     const res = await fetch(`${BASE_URL}/api/channels`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ link })
+      body: JSON.stringify({ link }),
+      credentials: 'include',
     });
     if (!res.ok) {
       const data = await res.json();
@@ -87,6 +89,7 @@ async function boost(id, btn) {
     const res = await fetch(`${BASE_URL}/api/channels/${id}/boost`, {
       method: 'POST',
       headers: isAdmin ? { 'X-Admin': 'true' } : {},
+      credentials: 'include',
     });
     const data = await res.json();
     if (!res.ok) {
