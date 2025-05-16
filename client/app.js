@@ -1,6 +1,6 @@
 let isAdmin = false;
 
-const BASE_URL = 'https://whatsapplist.onrender.com';
+const BASE_URL = '';
 
 function toggleLogin() {
   document.getElementById('loginForm').classList.toggle('hidden');
