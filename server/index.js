@@ -1,13 +1,14 @@
 require('dotenv').config();
-console.log('Hasła z ENV:', process.env.ADMIN_PASS_1, process.env.ADMIN_PASS_2);
-
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const axios = require('axios');
 const cheerio = require('cheerio');
-const app = express();
 const cookieParser = require('cookie-parser');
+const { v4: uuidv4 } = require('uuid');
+const path = require('path');
+
+const app = express();
 const PORT = process.env.PORT || 3001;
 
 mongoose.connect(process.env.MONGO_URI, {
@@ -20,17 +21,31 @@ const channelSchema = new mongoose.Schema({
   name: String,
   image: String,
   boostedAt: Date,
-  boosts: [{ ip: String, boostedAt: Date }],
+  boosts: [{ userId: String, boostedAt: Date }],
 });
 
 const Channel = mongoose.model('Channel', channelSchema);
 
 app.use(cors({
-  origin: 'https://whatsapplist.onrender.com',
+  origin: 'https:whatsapplist.onrender.com',
   credentials: true,
 }));
 app.use(express.json());
 app.use(cookieParser());
+
+app.use((req, res, next) => {
+  if (!req.cookies.user_id) {
+    const userId = uuidv4();
+    res.cookie('user_id', userId, {
+      httpOnly: true,
+      maxAge: 1000 * 60 * 60 * 24 * 365
+    });
+    req.userId = userId;
+  } else {
+    req.userId = req.cookies.user_id;
+  }
+  next();
+});
 
 app.post('/api/channels', async (req, res) => {
   const { link } = req.body;
@@ -56,14 +71,14 @@ app.get('/api/channels', async (req, res) => {
 });
 
 app.post('/api/channels/:id/boost', async (req, res) => {
-  const ip = req.ip;
   const isAdmin = req.headers['x-admin'] === 'true';
+  const userId = req.userId;
   const channel = await Channel.findById(req.params.id);
   if (!channel) return res.status(404).json({ error: 'Nie znaleziono kanału' });
 
   if (!isAdmin) {
     const recentBoost = await Channel.findOne({
-      boosts: { $elemMatch: { ip, boostedAt: { $gt: new Date(Date.now() - 15 * 60 * 1000) } } },
+      boosts: { $elemMatch: { userId, boostedAt: { $gt: new Date(Date.now() - 15 * 60 * 1000) } } },
     });
     if (recentBoost) {
       return res.status(429).json({ error: 'Można boostować tylko raz na 15 minut' });
@@ -71,7 +86,7 @@ app.post('/api/channels/:id/boost', async (req, res) => {
   }
 
   channel.boostedAt = new Date();
-  if (!isAdmin) channel.boosts.push({ ip, boostedAt: new Date() });
+  if (!isAdmin) channel.boosts.push({ userId, boostedAt: new Date() });
   await channel.save();
   res.json({ message: 'Zboostowano!' });
 });
@@ -86,7 +101,24 @@ app.delete('/api/channels/:id', async (req, res) => {
   }
 });
 
-const path = require('path');
+const ADMIN_PASS_1 = process.env.ADMIN_PASS_1;
+const ADMIN_PASS_2 = process.env.ADMIN_PASS_2;
+
+app.post('/api/admin/login', (req, res) => {
+  const { pass1, pass2 } = req.body;
+  if (pass1 === ADMIN_PASS_1 && pass2 === ADMIN_PASS_2) {
+    res.cookie('admin', 'true', { httpOnly: true });
+    res.json({ success: true });
+  } else {
+    res.status(401).json({ success: false, message: 'Niepoprawne hasła' });
+  }
+});
+
+app.post('/api/admin/logout', (req, res) => {
+  res.clearCookie('admin');
+  res.json({ success: true });
+});
+
 app.use(express.static(path.join(__dirname, '../client')));
 
 app.get('*', (req, res) => {
@@ -94,29 +126,3 @@ app.get('*', (req, res) => {
 });
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-
-const ADMIN_PASS_1 = process.env.ADMIN_PASS_1;
-const ADMIN_PASS_2 = process.env.ADMIN_PASS_2;
-
-function isAdminRequest(req, res, next) {
-    if (req.cookies && req.cookies.admin === 'true') {
-        next();
-    } else {
-        res.status(403).json({ error: 'Brak dostępu' });
-    }
-}
-
-app.post('/api/admin/login', (req, res) => {
-    const { pass1, pass2 } = req.body;
-    if (pass1 === ADMIN_PASS_1 && pass2 === ADMIN_PASS_2) {
-        res.cookie('admin', 'true', { httpOnly: true });
-        res.json({ success: true });
-    } else {
-        res.status(401).json({ success: false, message: 'Niepoprawne hasła' });
-    }
-});
-
-app.post('/api/admin/logout', (req, res) => {
-    res.clearCookie('admin');
-    res.json({ success: true });
-});
