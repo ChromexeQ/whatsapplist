@@ -11,7 +11,7 @@ async function login() {
   errorEl.textContent = '';
 
   try {
-    const res = await fetch('http://localhost:3001/api/admin/login', {
+    const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/admin/login'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ pass1, pass2 }),
@@ -34,7 +34,7 @@ async function login() {
 
 
 async function loadChannels() {
-  const res = await fetch('http://localhost:3001/api/channels');
+  const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/channels');
   const channels = await res.json();
   const container = document.getElementById('channels');
   container.innerHTML = '';
@@ -63,7 +63,7 @@ async function addChannel() {
     return;
   }
   try {
-    const res = await fetch('http://localhost:3001/api/channels', {
+    const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/channels'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ link })
@@ -83,7 +83,7 @@ async function addChannel() {
 async function boost(id, btn) {
   btn.disabled = true;
   try {
-    const res = await fetch(`http://localhost:3001/api/channels/${id}/boost`, {
+    const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/channels/${id}/boost`), {
       method: 'POST',
       headers: isAdmin ? { 'X-Admin': 'true' } : {},
     });
@@ -101,7 +101,7 @@ async function boost(id, btn) {
 async function deleteChannel(id) {
   if (!confirm('Czy na pewno chcesz usunąć ten kanał?')) return;
   try {
-    await fetch(`http://localhost:3001/api/channels/${id}`, { method: 'DELETE' });
+    await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/channels/${id}`), { method: 'DELETE' });
     loadChannels();
   } catch (err) {
     alert('Błąd usuwania kanału');
