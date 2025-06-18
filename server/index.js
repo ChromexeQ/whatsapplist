@@ -67,7 +67,28 @@ app.post('/api/channels', async (req, res) => {
 
 app.get('/api/channels', async (req, res) => {
   const channels = await Channel.find({}).sort({ boostedAt: -1 });
-  res.json(channels);
+
+  const updatedChannels = await Promise.all(
+    channels.map(async (channel) => {
+      try {
+        const { data } = await axios.get(channel.link);
+        const $ = cheerio.load(data);
+        const newName = $('meta[property="og:title"]').attr('content') || channel.name;
+        const newImage = $('meta[property="og:image"]').attr('content') || channel.image;
+
+        if (newName !== channel.name || newImage !== channel.image) {
+          channel.name = newName;
+          channel.image = newImage;
+          await channel.save();
+        }
+      } catch (err) {
+        console.error(`Błąd przy aktualizacji ${channel.link}:`, err.message);
+      }
+      return channel;
+    })
+  );
+
+  res.json(updatedChannels);
 });
 
 app.post('/api/channels/:id/boost', async (req, res) => {
