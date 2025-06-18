@@ -57,7 +57,7 @@ app.post('/api/channels', async (req, res) => {
     const $ = cheerio.load(response.data);
     const name = $('meta[property="og:title"]').attr('content') || $('title').text() || 'Kanał WhatsApp';
     const image = $('meta[property="og:image"]').attr('content') || '';
-    const newChannel = new Channel({ link, name, image, boostedAt: new Date(0), boosts: [] });
+    const newChannel = new Channel({ link, name, image, boostedAt: new Date(), boosts: [] });
     await newChannel.save();
     res.json(newChannel);
   } catch (err) {
